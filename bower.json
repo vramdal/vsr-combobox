@@ -17,5 +17,8 @@
     "polymer": "Polymer/polymer#~0.3.2",
     "core-overlay": "Polymer/core-overlay#~0.3.4",
     "core-transition": "Polymer/core-transition#~0.3.4"
+  },
+  "resolutions": {
+    "polymer": ">=0.4.0 <1.0.0"
   }
 }

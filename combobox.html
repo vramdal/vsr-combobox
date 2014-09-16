@@ -1,72 +1,59 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
-<polymer-element name="mdcms-admin-bar" attributes="userName userEmail">
+<polymer-element name="vsr-combobox" attributes="size">
     <script>
-        Polymer('mdcms-admin-bar', {
+        Polymer('vsr-combobox', {
+            size: 20,
+
             domReady: function () {
-                var _this = this;
-                this.$["collapse"].addEventListener("click", function (evt) {
-                    _this.shadowRoot.host.classList.add("collapsed");
+                this.datalistEl = this.shadowRoot.host.querySelector("datalist");
+                this.suggestionsEl = this.$["suggestions"];
+                this.suggestionsEl.style.display = "none";
+                this.$["type-box"].addEventListener("click", this.displaySuggestions.bind(this), false);
+/*
+                this.$["type-box"].addEventListener("keypress", function (evt) {
                 });
-                this.$["expand"].addEventListener("click", function (evt) {
-                    _this.shadowRoot.host.classList.remove("collapsed");
-                });
+*/
+            },
+            displaySuggestions: function() {
+                if (this.suggestionsEl.style.display != "none") {
+                    this.suggestionsEl.style.display = "none";
+                    return;
+                }
+                var options = this.datalistEl.querySelectorAll("option");
+                this.suggestionsEl.innerHTML = "";
+                for (var i = 0; i < options.length; i++) {
+                    var option = options[i];
+                    this.suggestionsEl.innerHTML += "<tr id=\"" + options[i].value + "\"><td>" + options[i].innerText + "</td></tr>"
+                }
+                this.suggestionsEl.style.display = "table";
             }
+
         });
     </script>
     <template>
         <style>
-            :host {
-                position: fixed;
-                border-bottom: outset;
-                top: 0;
-                left: 0;
-                /*right: 0;*/
-                width: 100%;
-                box-sizing: border-box;
-                padding: 3px;
-                font-size: 9pt;
-                font-family: Arial, sans-serif;
-                background-color: #ccffcc;
-                color: #000000;
+            #flex1 {
                 display: flex;
-                flex: auto 1;
-                /*flex-direction: row;*/
-                flex-wrap: nowrap;
-                flex-flow: row;
-                justify-content: space-between;
-                transition-property: width;
-                transition-duration: .5s;
+                align-content: stretch;
             }
-
-            :host(.collapsed) {
-                display: block;
-                width: 20px;
-                transition-property: width;
-                transition-duration: .5s;
+            input {
+                width: 100%;
             }
-
-            :host(.collapsed) > :not(expander) {
-                display: none;
+            #dropdownButton {
+                border: outset 1px;
             }
-
-            :host(.collapsed) expander #collapse {
-                display: none;
+            #suggestions {
+                border-collapse: collapse;
+                width: 100%;
             }
-
-            :host(:not(.collapsed)) expander #expand {
-                display: none;
-            }
-
-            expander {
-                font-family: Webdings;
-                cursor: pointer;
+            #suggestions td {
+                border: 1px solid gray;
             }
         </style>
-        <expander>
-            <span id="collapse"></span>
-            <span id="expand"></span>
-        </expander>
-        <span>Logged in as {{userName}} ({{userEmail}})</span>
-        <a href="/auth/logout">Log out</a>
+        <div id="flex1">
+            <input type="text" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
+        </div>
+        <table id="suggestions"></table>
+        <content></content>
     </template>
 </polymer-element>
