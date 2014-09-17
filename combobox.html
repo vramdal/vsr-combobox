@@ -1,5 +1,5 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
-<polymer-element name="vsr-combobox" attributes="size keypressdelay suggestions value text">
+<polymer-element name="vsr-combobox" attributes="size keypressdelay suggestions value text placeholder">
     <script>
         Polymer('vsr-combobox', {
             size: 20,
@@ -7,6 +7,7 @@
             value: "",
             text: "",
             selectedOptionIdx: -1,
+            placeholder: "",
 
             created: function() {
                 this.suggestions = [];
@@ -64,6 +65,9 @@
                     this.scheduleSuggestionsUpdate();
                 }.bind(this));
                 this.typeBox.addEventListener("keydown", function(evt) {
+                    if (evt.keyCode == 38 || evt.keyCode == 40) {
+                        evt.preventDefault();
+                    }
                     if (evt.keyCode == 38) { // UP
                         if (this.selectedOptionIdx > 0) {
                             this.selectedOptionIdx -= 1;
@@ -136,7 +140,7 @@
         </style>
         <content></content>
         <div id="flex1">
-            <input type="text" value="{{typedInput}}" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
+            <input type="text" placeholder="{{placeholder}}" value="{{typedInput}}" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
         </div>
         <table id="suggestions">
             <template repeat="{{suggestion in suggestions}}">
