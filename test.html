@@ -6,23 +6,40 @@
     <script src="bower_components/platform/platform.js"></script>
     <link rel="import" href="combobox.html"/>
     <script>
-        function updateOptions(evt) {
+        function updateSuggestions(evt) {
             console.log("Updating options from search term ", evt.detail.value);
-            evt.detail.callback();
-//            callback();
+            evt.target.displayWaitIndicator(true);
+            var matches = [];
+            for (var i = 0; i < states.length; i++) {
+                var state = states[i];
+                if (state.name.indexOf(evt.detail.value) == 0) {
+                    matches.push(state);
+                }
+            }
+            evt.target.suggestions = matches;
+            evt.target.displayWaitIndicator(false);
         }
         window.addEventListener("load", function() {
-            document.querySelector("vsr-combobox").addEventListener("input-changed", updateOptions, false);
+            var comboBox = document.querySelector("vsr-combobox");
+            comboBox.addEventListener("input-changed", updateSuggestions, false);
+            comboBox.suggestions = states;
         });
+        var states = [
+            {value: "AL", name: "Alabama"},
+            {value: "AK", name: "Alaska"},
+            {value: "AZ", name: "Arizona", disabled: true},
+            {value: "AR", name: "Arkansas", style: 'color: red'},
+            {value: "ID", name: "Idaho"},
+            {value: "IN", name: "Indiana"},
+            {value: "IL", name: "Illinois"},
+            {value: "FL", name: "Florida"},
+            {value: "LA", name: "Louisiana"},
+            {value: "NY", name: "New York"}
+        ];
     </script>
 </head>
 <body>
-<vsr-combobox on-input-changed="updateOptions">
-    <h1>Laks</h1>
-    <datalist>
-        <option value="AK">Alaska</option>
-        <option value="IL">Illinois</option>
-    </datalist>
+<vsr-combobox suggestions='[{"name": "Louisiana", "value": "LA"}, {"name": "Florida", "value": "FL"}]'>
 </vsr-combobox>
 </body>
 </html>

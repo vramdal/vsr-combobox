@@ -1,43 +1,99 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
-<polymer-element name="vsr-combobox" attributes="size keypressdelay">
+<polymer-element name="vsr-combobox" attributes="size keypressdelay suggestions value text">
     <script>
         Polymer('vsr-combobox', {
             size: 20,
             keypressdelay: 700,
+            value: "",
+            text: "",
+            selectedOptionIdx: -1,
+
+            created: function() {
+                this.suggestions = [];
+            },
+
+            suggestionsChanged: function(oldValue, newValue) {
+                if (!this.typeBox) {
+                    return; // Not yet initialized
+                }
+                console.log("Suggestions changed");
+                this.displaySuggestions(true);
+                if (this.selectedOptionIdx > newValue.length) {
+                    this.selectedOptionIdx = -1;
+                }
+                this.typeBox.classList.remove("waiting");
+            },
+
+            selectedOptionIdxChanged: function(oldValue, newValue) {
+                var suggestionRowsArr = Array.prototype.slice.call(this.shadowRoot.querySelector("table").getElementsByTagName("tr"));
+                suggestionRowsArr.forEach(function(tr) {
+                    tr.removeAttribute("data-selected");
+                });
+                suggestionRowsArr[newValue].setAttribute("data-selected", "true");
+            },
+
+            valueChanged: function(oldvalue, newValue) {
+                if (!this.typeBox) {
+                    return; // Not yet initialized
+                }
+                console.log("Value changed");
+            },
+
+            displayWaitIndicator: function(trueOrFalse) {
+                if (!trueOrFalse) {
+                    this.typeBox.classList.remove("waiting");
+                } else {
+                    this.typeBox.classList.add("waiting");
+                }
+            },
+
+            scheduleSuggestionsUpdate: function () {
+                if (this.lastKeypressTimeout) {
+                    window.clearTimeout(this.lastKeypressTimeout);
+                }
+                this.lastKeypressTimeout = window.setTimeout(this.emitSearchEvent.bind(this), this.keypressdelay);
+            },
 
             domReady: function () {
                 var _this = this;
-                this.datalistEl = this.shadowRoot.host.querySelector("datalist");
                 this.suggestionsEl = this.$["suggestions"];
                 this.suggestionsEl.style.display = "none";
                 this.typeBox = this.$["type-box"];
                 this.typeBox.addEventListener("click", this.displaySuggestions.bind(this), false);
                 this.typeBox.addEventListener("keypress", function (evt) {
-                    if (_this.lastKeypressTimeout) {
-                        window.clearTimeout(_this.lastKeypressTimeout);
+                    this.scheduleSuggestionsUpdate();
+                }.bind(this));
+                this.typeBox.addEventListener("keydown", function(evt) {
+                    if (evt.keyCode == 38) { // UP
+                        if (this.selectedOptionIdx > 0) {
+                            this.selectedOptionIdx -= 1;
+                        } else if (this.selectedOptionIdx == -1 && this.suggestions.length > 0) {
+                            this.selectedOptionIdx = this.suggestions.length - 1;
+                        }
+                    } else if (evt.keyCode == 40) { // DOWN
+                        if (this.selectedOptionIdx != -1 && this.selectedOptionIdx < this.suggestions.length - 1) {
+                            this.selectedOptionIdx += 1;
+                        } else if (this.selectedOptionIdx == -1 && this.suggestions.length > 0) {
+                            this.selectedOptionIdx = 0;
+                        }
                     }
-                    _this.lastKeypressTimeout = window.setTimeout(_this.emitSearchEvent.bind(_this), _this.keypressdelay);
-                });
+                }.bind(this));
             },
             emitSearchEvent: function() {
-                this.typeBox.classList.add("waiting");
-                this.fire("input-changed", {value: this.typeBox.value, callback: this.updateOptions.bind(this)});
+                this.fire("input-changed", {value: this.typeBox.value});
             },
-            updateOptions: function() {
-                this.typeBox.classList.remove("waiting");
-            },
-            displaySuggestions: function() {
-                if (this.suggestionsEl.style.display != "none") {
+            displaySuggestions: function(trueOrFalse) {
+                if (trueOrFalse === undefined) {
+                    if (this.suggestionsEl.style.display != "none") {
+                        this.suggestionsEl.style.display = "none";
+                        return;
+                    }
+                    this.suggestionsEl.style.display = "table";
+                } else if (trueOrFalse) {
+                    this.suggestionsEl.style.display = "table";
+                } else {
                     this.suggestionsEl.style.display = "none";
-                    return;
                 }
-                var options = this.datalistEl.querySelectorAll("option");
-                this.suggestionsEl.innerHTML = "";
-                for (var i = 0; i < options.length; i++) {
-                    var option = options[i];
-                    this.suggestionsEl.innerHTML += "<tr id=\"" + options[i].value + "\"><td>" + options[i].innerText + "</td></tr>"
-                }
-                this.suggestionsEl.style.display = "table";
             }
 
         });
@@ -64,31 +120,30 @@
             #suggestions {
                 border-collapse: collapse;
                 width: 100%;
+                border: 1px outset;
             }
             #suggestions td {
-                border: 1px solid gray;
-            }
-            content::content datalist {
-                display: block;
-                height: 100px;
+                border: 1px solid lightgray;
             }
 
-            content::content option {
-                display: block;
-                height: 50px;
-                border: 1px solid black;
-                width: 100px;
-                color: yellow;
+            #suggestions tr[data-disabled='true'] {
+                color: gray;
             }
 
-            content::content h1 {
-                color: green;
+            #suggestions tr[data-selected='true'] {
+                background-color: Background;
             }
         </style>
         <content></content>
         <div id="flex1">
             <input type="text" value="{{typedInput}}" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
         </div>
-        <table id="suggestions"></table>
+        <table id="suggestions">
+            <template repeat="{{suggestion in suggestions}}">
+                <tr id="{{suggestion.value}}" data-disabled="{{suggestion.disabled}}">
+                    <td style="{{suggestion.style}}">{{suggestion.name}}</td>
+                </tr>
+            </template>
+        </table>
     </template>
 </polymer-element>
