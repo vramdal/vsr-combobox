@@ -1,18 +1,30 @@
 <link rel="import" href="bower_components/polymer/polymer.html">
-<polymer-element name="vsr-combobox" attributes="size">
+<polymer-element name="vsr-combobox" attributes="size keypressdelay">
     <script>
         Polymer('vsr-combobox', {
             size: 20,
+            keypressdelay: 700,
 
             domReady: function () {
+                var _this = this;
                 this.datalistEl = this.shadowRoot.host.querySelector("datalist");
                 this.suggestionsEl = this.$["suggestions"];
                 this.suggestionsEl.style.display = "none";
-                this.$["type-box"].addEventListener("click", this.displaySuggestions.bind(this), false);
-/*
-                this.$["type-box"].addEventListener("keypress", function (evt) {
+                this.typeBox = this.$["type-box"];
+                this.typeBox.addEventListener("click", this.displaySuggestions.bind(this), false);
+                this.typeBox.addEventListener("keypress", function (evt) {
+                    if (_this.lastKeypressTimeout) {
+                        window.clearTimeout(_this.lastKeypressTimeout);
+                    }
+                    _this.lastKeypressTimeout = window.setTimeout(_this.emitSearchEvent.bind(_this), _this.keypressdelay);
                 });
-*/
+            },
+            emitSearchEvent: function() {
+                this.typeBox.classList.add("waiting");
+                this.fire("input-changed", {value: this.typeBox.value, callback: this.updateOptions.bind(this)});
+            },
+            updateOptions: function() {
+                this.typeBox.classList.remove("waiting");
             },
             displaySuggestions: function() {
                 if (this.suggestionsEl.style.display != "none") {
@@ -39,6 +51,13 @@
             input {
                 width: 100%;
             }
+
+            /*noinspection CssUnusedSymbol*/
+            input.waiting {
+                background-image: url(ajax-loader.gif);
+                background-position: right center;
+                background-repeat: no-repeat;
+            }
             #dropdownButton {
                 border: outset 1px;
             }
@@ -49,11 +68,27 @@
             #suggestions td {
                 border: 1px solid gray;
             }
+            content::content datalist {
+                display: block;
+                height: 100px;
+            }
+
+            content::content option {
+                display: block;
+                height: 50px;
+                border: 1px solid black;
+                width: 100px;
+                color: yellow;
+            }
+
+            content::content h1 {
+                color: green;
+            }
         </style>
+        <content></content>
         <div id="flex1">
-            <input type="text" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
+            <input type="text" value="{{typedInput}}" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
         </div>
         <table id="suggestions"></table>
-        <content></content>
     </template>
 </polymer-element>

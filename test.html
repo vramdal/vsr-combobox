@@ -5,9 +5,20 @@
     <title></title>
     <script src="bower_components/platform/platform.js"></script>
     <link rel="import" href="combobox.html"/>
+    <script>
+        function updateOptions(evt) {
+            console.log("Updating options from search term ", evt.detail.value);
+            evt.detail.callback();
+//            callback();
+        }
+        window.addEventListener("load", function() {
+            document.querySelector("vsr-combobox").addEventListener("input-changed", updateOptions, false);
+        });
+    </script>
 </head>
 <body>
-<vsr-combobox>
+<vsr-combobox on-input-changed="updateOptions">
+    <h1>Laks</h1>
     <datalist>
         <option value="AK">Alaska</option>
         <option value="IL">Illinois</option>
