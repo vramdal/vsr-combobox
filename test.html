@@ -7,21 +7,29 @@
     <link rel="import" href="combobox.html"/>
     <script>
         function updateSuggestions(evt) {
-            console.log("Updating options from search term ", evt.detail.value);
+            console.log("Updating options from search term ", evt.detail.name);
             evt.target.displayWaitIndicator(true);
             var matches = [];
             for (var i = 0; i < states.length; i++) {
                 var state = states[i];
-                if (state.name.indexOf(evt.detail.value) == 0) {
+                if (state.name.indexOf(evt.detail.name) == 0) {
                     matches.push(state);
                 }
             }
             evt.target.suggestions = matches;
             evt.target.displayWaitIndicator(false);
         }
+        function addSuggestions(evt) {
+            console.log("Adding suggestions for value", evt.detail.value);
+            if (evt.detail.value == "CA") {
+//                evt.target.suggestions.push({name: "California", value: "CA"});
+                evt.target.text = "California";
+            }
+        }
         window.addEventListener("load", function() {
             var comboBox = document.querySelector("vsr-combobox");
             comboBox.addEventListener("input-changed", updateSuggestions, false);
+            comboBox.addEventListener("no-name", addSuggestions, false);
             comboBox.suggestions = states;
         });
         var states = [

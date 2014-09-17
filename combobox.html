@@ -19,8 +19,16 @@
                 }
                 console.log("Suggestions changed");
                 this.displaySuggestions(true);
-                if (this.selectedOptionIdx > newValue.length) {
-                    this.selectedOptionIdx = -1;
+                if (this.selectedOptionIdx >= this.suggestions.length) {
+                    if (this.suggestions.length > 0) {
+                        this.selectedOptionIdx = 0;
+                    } else {
+                        this.selectedOptionIdx = -1;
+                    }
+                } else if (this.selectedOptionIdx != -1) {
+                    this.selectedOptionIdxChanged(null, this.selectedOptionIdx);
+                } else if (this.selectedOptionIdx == -1 && this.suggestions.length > 0) {
+                    this.selectedOptionIdx = 0;
                 }
                 this.typeBox.classList.remove("waiting");
             },
@@ -30,12 +38,72 @@
                 suggestionRowsArr.forEach(function(tr) {
                     tr.removeAttribute("data-selected");
                 });
-                suggestionRowsArr[newValue].setAttribute("data-selected", "true");
+                if (this.suggestions.length == 0) {
+                    this.selectedOptionIdx = -1;
+                    return;
+                }
+                if (newValue > this.suggestions.length -1) {
+                    this.selectedOptionIdx = 0;
+                }
+                if (this.suggestions[newValue].disabled) {
+                    if (newValue > oldValue) {
+                        this.selectedOptionIdx++;
+                    } else if (newValue < oldValue) {
+                        this.selectedOptionIdx--;
+                    }
+                    if (newValue < 0) {
+                        this.selectedOptionIdx = this.suggestions.length - 1;
+                    } else if (newValue > this.suggestions.length - 1) {
+                        this.selectedOptionIdx = 0;
+                    }
+                    this.selectedOptionIdx = newValue;
+                }
+                if (newValue > this.suggestions.length) {
+                    this.selectedOptionIdx = 0;
+                }
+
+                var suggestion = this.suggestions[this.selectedOptionIdx];
+                suggestionRowsArr[this.selectedOptionIdx].setAttribute("data-selected", "true");
+                this.value = suggestion.value;
+                console.log("Typed value", this.typeBox.typedValue);
+                if (this.typeBox.typedValue && suggestion.name.indexOf(this.typeBox.typedValue) == 0) {
+                    var numberOfTypedCharacters = this.typeBox.typedValue.length;
+                    if (numberOfTypedCharacters < suggestion.name.length) {
+                        this.typeBox.value = suggestion.name;
+                        this.typeBox.selectionStart = numberOfTypedCharacters;
+                        this.typeBox.selectionEnd = suggestion.name.length;
+//                            this.typeBox.focus();
+                    }
+                } else {
+                    this.typeBox.value = suggestion.name;
+                    this.typeBox.select();
+                }
+            },
+
+            suggestionsRendered: function() {
+                if (this.selectedOptionIdx != -1) {
+                    var suggestionRowsArr = Array.prototype.slice.call(this.suggestionsEl.getElementsByTagName("tr"));
+                    suggestionRowsArr[this.selectedOptionIdx].setAttribute("data-selected", "true");
+                }
             },
 
             valueChanged: function(oldvalue, newValue) {
                 if (!this.typeBox) {
                     return; // Not yet initialized
+                }
+                var suggestionMatch = false;
+                for (var i = 0; i < this.suggestions.length; i++) {
+                    var suggestion = this.suggestions[i];
+                    if (suggestion.value == newValue) {
+                        if (this.typeBox.value != suggestion.name) {
+                            this.typeBox.value = suggestion.name;
+                        }
+                        suggestionMatch = true;
+                        break;
+                    }
+                }
+                if (!suggestionMatch) {
+                    this.fire("no-name", {value: newValue});
                 }
                 console.log("Value changed");
             },
@@ -59,13 +127,20 @@
                 var _this = this;
                 this.suggestionsEl = this.$["suggestions"];
                 this.suggestionsEl.style.display = "none";
+                var suggestionsElObserver = new MutationObserver(function(mutations) {
+                    mutations.forEach(function(mutation) {
+                        console.log("mutation =", mutation);
+                    });
+                    this.suggestionsRendered();
+                }.bind(this));
+                suggestionsElObserver.observe(this.suggestionsEl, {childList: true});
                 this.typeBox = this.$["type-box"];
                 this.typeBox.addEventListener("click", this.displaySuggestions.bind(this), false);
                 this.typeBox.addEventListener("keypress", function (evt) {
                     this.scheduleSuggestionsUpdate();
                 }.bind(this));
                 this.typeBox.addEventListener("keydown", function(evt) {
-                    if (evt.keyCode == 38 || evt.keyCode == 40) {
+                    if (evt.keyCode == 38 || evt.keyCode == 40 || evt.keyCode == 13) {
                         evt.preventDefault();
                     }
                     if (evt.keyCode == 38) { // UP
@@ -80,11 +155,21 @@
                         } else if (this.selectedOptionIdx == -1 && this.suggestions.length > 0) {
                             this.selectedOptionIdx = 0;
                         }
+                    } else if (evt.keyCode == 13) { // ENTER
+                        if (this.selectedOptionIdx > -1 && this.selectedOptionIdx < this.suggestions.length) {
+                            var selectedSuggestion = this.suggestions[this.selectedOptionIdx];
+                            this.value = selectedSuggestion.value;
+                            this.typeBox.value = selectedSuggestion.name;
+                            this.displaySuggestions(false);
+                        }
+                    } else if (evt.keyCode == 8) { // BACKSPACE
+                        this.scheduleSuggestionsUpdate();
                     }
                 }.bind(this));
             },
             emitSearchEvent: function() {
-                this.fire("input-changed", {value: this.typeBox.value});
+                this.typeBox.typedValue = this.typeBox.value;
+                this.fire("input-changed", {name: this.typeBox.value});
             },
             displaySuggestions: function(trueOrFalse) {
                 if (trueOrFalse === undefined) {
@@ -98,6 +183,18 @@
                 } else {
                     this.suggestionsEl.style.display = "none";
                 }
+            },
+            suggestionClicked: function(evt) {
+                var row = evt.currentTarget;
+                var suggestionName = row.dataset["name"];
+                var suggestionValue = row.dataset["value"];
+                if (row.dataset["disabled"]) {
+                    return;
+                }
+                this.typeBox.value = suggestionName;
+                this.value = suggestionValue;
+                this.displaySuggestions(false);
+                this.typeBox.focus();
             }
 
         });
@@ -128,26 +225,29 @@
             }
             #suggestions td {
                 border: 1px solid lightgray;
+                cursor: default;
             }
 
             #suggestions tr[data-disabled='true'] {
                 color: gray;
+                cursor: not-allowed;
             }
 
-            #suggestions tr[data-selected='true'] {
+            #suggestions tr[data-selected='true'], #suggestions tr:hover:not([data-disabled='true']) td {
                 background-color: Background;
             }
         </style>
         <content></content>
         <div id="flex1">
-            <input type="text" placeholder="{{placeholder}}" value="{{typedInput}}" id="type-box" size="{{size}}"/><span id="dropdownButton">▼</span>
+            <input type="text" placeholder="{{placeholder}}" value="{{text}}" id="type-box" size="{{size}}"/><!--<span id="dropdownButton">▼</span>-->
         </div>
         <table id="suggestions">
             <template repeat="{{suggestion in suggestions}}">
-                <tr id="{{suggestion.value}}" data-disabled="{{suggestion.disabled}}">
+                <tr data-value="{{suggestion.value}}" data-name="{{suggestion.name}}" data-disabled="{{suggestion.disabled}}" on-click="{{suggestionClicked}}">
                     <td style="{{suggestion.style}}">{{suggestion.name}}</td>
                 </tr>
             </template>
         </table>
+
     </template>
 </polymer-element>
