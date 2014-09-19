@@ -110,6 +110,7 @@ Polymer('vsr-combobox', {
         if (!suggestionMatch) {
             this.fire("no-name", {value: newValue});
         }
+        this.fire("change", {value: newValue, oldValue: oldvalue});
         console.log("Value changed");
     },
 
