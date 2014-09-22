@@ -70,20 +70,18 @@
 
                 var suggestion = this.suggestions[this.selectedOptionIdx];
                 suggestionRowsArr[this.selectedOptionIdx].setAttribute("data-selected", "true");
-//                this.value = suggestion.value;
+                this.value = suggestion.value;
                 console.log("Typed value", this.typeBox.typedValue);
                 if (this.typeBox.typedValue && suggestion.name.indexOf(this.typeBox.typedValue) == 0) {
                     var numberOfTypedCharacters = this.typeBox.typedValue.length;
                     if (numberOfTypedCharacters < suggestion.name.length) {
                         this.typeBox.value = suggestion.name;
-                        this.text = this.typeBox.value;
                         this.typeBox.selectionStart = numberOfTypedCharacters;
                         this.typeBox.selectionEnd = suggestion.name.length;
 //                            this.typeBox.focus();
                     }
                 } else {
                     this.typeBox.value = suggestion.name;
-                    this.text = this.typeBox.value;
                     this.typeBox.select();
                 }
             },
@@ -113,7 +111,6 @@
                 if (!suggestionMatch) {
                     this.fire("no-name", {value: newValue});
                 }
-                this.fire("change", {value: newValue, oldValue: oldvalue});
                 console.log("Value changed");
             },
 
@@ -175,16 +172,9 @@
                         this.scheduleSuggestionsUpdate();
                     }
                 }.bind(this));
-                this.typeBox.addEventListener("change", function(evt) {
-                    this.text = this.typeBox.value;
-                }.bind(this));
-                this.typeBox.addEventListener("blur", function(evt) {
-                    this.fire("blur");
-                }.bind(this));
             },
             emitSearchEvent: function() {
                 this.typeBox.typedValue = this.typeBox.value;
-                this.text = this.typeBox.value;
                 this.fire("input-changed", {name: this.typeBox.value});
             },
             displaySuggestions: function(trueOrFalse) {
